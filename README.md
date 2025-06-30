@@ -1,85 +1,41 @@
-# README
+# Cliente do Protocolo SLOW
 
-Este projeto implementa um _peripheral_ e um _servidor_ para testar o protocolo SLOW (camada de transporte sobre UDP/7033).  
+## Descrição
 
-## Requisitos
+Este projeto é uma implementação em C de um cliente (peripheral) para o protocolo de transporte customizado **SLOW**. O programa estabelece uma conexão com um servidor, transfere um arquivo de forma confiável e encerra a sessão.
 
-- GCC (compatível com C99)
-- Sistema Linux/Unix
+O funcionamento se baseia em um laço principal que orquestra as três fases da comunicação:
+1.  **Handshake**: Uma conexão é estabelecida com o servidor `slow.gmelodie.com:7033`.
+2.  **Transferência de Arquivo**: O arquivo especificado é lido, dividido em fragmentos de no máximo 1440 bytes e enviado. O programa implementa uma lógica de "parar-e-esperar", aguardando a confirmação (ACK) de cada fragmento antes de enviar o próximo e reenviando em caso de timeout.
+3.  **Desconexão**: Uma mensagem de `Disconnect` é enviada para encerrar a sessão de forma limpa.
 
-## Compilação
+## Nome e número USP dos membros
 
-No diretório raiz do projeto, execute:
+* Fernando Alee Suaiden - 12680836
+* Felipe da Costa Coqueiro - 11781361
+* Flávio Masaaki Ito - 12609046
 
-```bash
-gcc -std=c99 -Wall -Wextra protocolo-slow.c -o protocolo -W
-gcc -std=c99 -Wall -Wextra servidor.c -o servidor -W
-````
+## Como Usar
 
-* `-std=c99` ativa o padrão C99.
-* `-Wall -Wextra` habilita avisos de compilação.
-* `-W` inclui warnings adicionais
+O programa foi desenvolvido para ser compilado e executado em um ambiente Linux.
 
-## Execução
+### Compilação
 
-1. **Inicie o servidor** em um terminal.
-
-   ```bash
-   ./servidor arquivo_recebido.dat
-   ```
-
-   * `arquivo_recebido.dat`: caminho onde o servidor irá gravar os dados recebidos
-
-2. **Execute o cliente (peripheral)** em outro terminal:
-
-   ```bash
-   ./protocolo 127.0.0.1 mensagem.txt
-   ```
-
-   * `127.0.0.1`: endereço IPv4 do servidor central
-   * `mensagem.txt`: caminho do arquivo que você quer enviar
-
-### Exemplo completo
-
-Num terminal (servidor):
+Use o GCC para compilar o código-fonte `protocolo-slow.c`:
 
 ```bash
-$ ./servidor recebido.dat
-Aguardando CONNECT na porta 7033...
-CONNECT de 127.0.0.1:XXXXX
-SETUP enviado (ACCEPT), sttl=1000, seq=0
-Fragmento 0 recebido (N bytes), enviado ACK 0
-...
-Disconnect recebido.
-Arquivo recebido em 'recebido.dat'. Servidor encerrado.
+gcc -Wall protocolo-slow.c -o meu_peripheral
+```
+### Execução
+
+Para executar o programa, forneça o hostname do servidor e o caminho do arquivo que deseja enviar.
+
+```Bash
+./meu_peripheral slow.gmelodie.com nome_do_arquivo.txt
 ```
 
-Em outro terminal (cliente):
-
-```bash
-$ ./protocolo 127.0.0.1 meu_arquivo.txt
-Handshake ok: sttl=1000, peer_seq=0
-Enviado M fragments
+### Exemplo prático:
+```Bash
+# Exemplo enviando um arquivo de texto chamado "mensagem.txt", que já está criado no repositório
+./meu_peripheral slow.gmelodie.com mensagem.txt
 ```
-
-Após o término, verifique o conteúdo:
-
-```bash
-cat recebido.dat
-```
-
-## Estrutura do código
-
-* **protocolo-slow\.c**
-  Implementa o *peripheral*:
-
-  * 3-way handshake (CONNECT → SETUP)
-  * Stop-and-wait com fragmentação (DATA → ACK)
-  * Disconnect (CONNECT|REVIVE|ACK)
-
-* **servidor.c**
-  Simula o *central*:
-
-  * Recebe CONNECT, responde ACCEPT
-  * Recebe fragmentos, grava em arquivo e responde ACK
-  * Recebe DISCONNECT e encerra sessão
